@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>הצ'אט עם גילי</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Rubik:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --gili-red: #d32f2f;
+            --chat-bg: #e5ddd5; 
+            --my-msg-bg: #dcf8c6; 
+            --gili-msg-bg: #ffffff; 
+            --player-bg: #f2f2f2;
+            --wave-color: #b3b3b3;
+            --wave-progress: #d32f2f; 
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #333; 
+            margin: 0; display: flex; justify-content: center;
+            height: 100vh; height: 100dvh; overflow: hidden;
+        }
+
+        #phone-wrapper {
+            width: 100%; max-width: 450px;
+            background-color: var(--chat-bg);
+            background-image: linear-gradient(rgba(229,221,213,0.95), rgba(229,221,213,0.95)), url('https://www.transparenttextures.com/patterns/cubes.png');
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5); height: 100%;
+            position: relative; 
+        }
+
+        @media (max-width: 480px) {
+            #phone-wrapper { max-width: 100%; box-shadow: none; }
+        }
+
+        header {
+            background-color: #f7f7f7; padding: 10px 15px; 
+            display: flex; align-items: center; gap: 15px;
+            border-bottom: 1px solid #ddd; z-index: 10; flex-shrink: 0;
+        }
+
+        .avatar-container { width: 50px; height: 50px; position: relative; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+        .status-area h1 { margin: 0; font-family: 'Amatic SC', cursive; font-size: 28px; color: #333; letter-spacing: 1px; }
+        .status-text { font-size: 13px; color: var(--gili-red); font-weight: 500; }
+
+        #chat-window { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px; scrollbar-width: none; }
+        #chat-window::-webkit-scrollbar { display: none; }
+
+        .message { max-width: 80%; padding: 10px 15px; font-size: 16px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); border-radius: 8px; animation: fadeIn 0.3s ease; color: #333; margin-bottom: 2px; }
+        .message.gili { background-color: var(--gili-msg-bg); align-self: flex-start; border-top-right-radius: 0px; border-top-left-radius: 8px; }
+        .message.me { background-color: var(--my-msg-bg); align-self: flex-end; border-top-left-radius: 0px; border-top-right-radius: 8px; }
+
+        /* Gallery Grid */
+        .image-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 5px; width: 220px; }
+        .gallery-item { position: relative; width: 100%; height: 100px; cursor: pointer; border-radius: 4px; overflow: hidden; }
+        .gallery-img-thumb { width: 100%; height: 100%; object-fit: cover; }
+        .more-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); color: white; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: bold; }
+
+        .chat-image { width: 100%; border-radius: 8px; margin-top: 5px; border: 1px solid #ddd; display: block; cursor: pointer; max-width: 250px; }
+
+        /* Lightbox */
+        #lightbox {
+            display: none; position: fixed; z-index: 9999; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.95);
+            justify-content: center; align-items: center; 
+        }
+        #lightbox-img { max-width: 95%; max-height: 80%; border-radius: 4px; object-fit: contain; }
+        #lightbox-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 45px; cursor: pointer; padding: 10px; line-height: 1; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: white; font-size: 50px; cursor: pointer; padding: 20px; user-select: none; background: rgba(255,255,255,0.1); border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+        #prev-btn { right: 15px; }
+        #next-btn { left: 15px; }
+
+        .custom-player-wrapper { display: flex; align-items: center; gap: 10px; margin-top: 5px; min-width: 220px; }
+        .play-btn { width: 35px; height: 35px; background-color: #f0f0f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #555; border: 1px solid #ddd; }
+        .waveform { display: flex; align-items: center; gap: 2px; height: 25px; flex: 1; }
+        .bar { width: 3px; background-color: var(--wave-color); border-radius: 2px; }
+        .bar.active { background-color: var(--wave-progress); }
+        .time-display { font-size: 11px; color: #888; min-width: 35px; }
+
+        #input-area { background-color: #f0f0f0; padding: 15px 10px; border-top: 1px solid #ddd; min-height: 90px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .options-container { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; }
+        .option-btn { background: white; border: 1px solid #ccc; color: #333; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-family: 'Rubik', sans-serif; font-weight: 500; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); flex: 1 1 auto; text-align: center; }
+        .option-btn:hover { background-color: var(--gili-red); color: white; }
+
+        .typing-bubble { background-color: white; padding: 10px 15px; border-radius: 20px; border-top-right-radius: 0; width: fit-content; margin-bottom: 10px; margin-right: 15px; margin-left: auto; display: none; align-self: flex-start; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .dot-flashing { position: relative; width: 8px; height: 8px; border-radius: 5px; background-color: #999; animation: dot-flashing 1s infinite linear alternate; animation-delay: 0.5s; }
+        .dot-flashing::before, .dot-flashing::after { content: ""; display: inline-block; position: absolute; top: 0; }
+        .dot-flashing::before { left: -12px; width: 8px; height: 8px; border-radius: 5px; background-color: #999; animation: dot-flashing 1s infinite alternate; animation-delay: 0s; }
+        .dot-flashing::after { left: 12px; width: 8px; height: 8px; border-radius: 5px; background-color: #999; animation: dot-flashing 1s infinite alternate; animation-delay: 1s; }
+        @keyframes dot-flashing { 0% { background-color: #999; } 50%, 100% { background-color: #e0e0e0; } }
+    </style>
+</head>
+<body>
+
+<div id="phone-wrapper">
+    <header>
+        <div class="avatar-container">
+            <img src="images/gili.jpeg" id="gili-face" class="avatar" alt="Gili">
+        </div>
+        <div class="status-area">
+            <h1>גילי</h1>
+            <div class="status-text" id="status">זמינה</div>
+        </div>
+    </header>
+
+    <div id="chat-window"></div>
+
+    <div class="typing-bubble" id="typing-bubble">
+        <div class="dot-flashing"></div>
+    </div>
+
+    <div id="input-area">
+        <div class="options-container" id="options-box"></div>
+    </div>
+</div>
+
+<div id="lightbox" onclick="if(event.target === this) closeLightbox()">
+    <span id="lightbox-close" onclick="closeLightbox()">&times;</span>
+    <div class="nav-btn" id="prev-btn" onclick="changeImage(-1); event.stopPropagation();">&#10094;</div>
+    <img id="lightbox-img" src="">
+    <div class="nav-btn" id="next-btn" onclick="changeImage(1); event.stopPropagation();">&#10095;</div>
+</div>
+
+<script>
+    const imagesPath = 'images/'; 
+    const audioPath = 'audio/'; 
+    let allImgsOnScreen = [];
+    let currentImgIdx = 0;
+
+    /* FLOW */
+    const conversationData = [
+        {
+            id: 1,
+            userText: "",
+            sequence: [
+                { type: 'text', value: "הייי! אני גילי"},
+                { type: 'text', value: "מה קורה? מה נשמע?"},
+                {type: 'text', value: "נעם אמרה לי שהיא עושה עליי דוקו!! מה אתה רוצה לדעת?", delay:4000},
+                {type: 'text', value: "תסלח לי מראש, אני באמצע דברים וזה אתגר עבורי לחלק את הקשב. אז מה אתה רוצה לדעת?"}
+            ],
+            hesitation: true, 
+            emotion: "confused",
+            delay: 2000, 
+            nextOptions: [2, 3]
+        },
+        {
+            id: 2,
+            userText: "איך עובר היום שלך?",
+            sequence: [
+                { type: 'text', value: "אני בדיוק בעבודה, היה כמה שעות ממש קשוחות. ביקשו ממני לעשות סדר עבור בקשת רכש שיוצאת..."},
+                { type: 'text', value: "זה התעסקות במלא כסף, טעות שלא לקחתי היום אטנט", delay:4000},
+                { type: 'text', value: "שלחו לי אקסל לעבוד דרכו"},
+                { type: 'audio', value: "nedded_to_do_my_ceremony_around_numbers.mp3" }, 
+                { type: 'audio', value: "money_ceremony.mp3" }, 
+                { type: 'text', value: "ועדיין, זה היה ממש מתסכל"},
+                { type: 'audio', value: "money_everything_would_have_been_easier_with_atent.mp3" }
+            ],
+            hesitation: true, 
+            emotion: "happy",
+            delay: 4500, 
+            nextOptions: [3, 4]
+        },  
+        {
+            id: 3,
+            userText: "מה שלומך היום?",
+            sequence: [
+                { type: 'text', value: "אחלה, יום די עמוס בעבודה.."},
+                { type: 'text', value: "הייתי באיזה פגישה מקודם ולא הבנתי כלום"},
+                { type: 'text', value: "שניה מקליטה לך", delay:3000},
+                { type: 'audio', value: "people_were_talking_to_me_and_gili_didnt_know_what_they_said.mp3" }, 
+                { type: 'audio', value: "meetings_in_english.mp3" },
+                { type: 'text', value: "אה וכמובן אירחתי כי לא מצאתי את האוזניות שלי"},
+                { type: 'text', value: "ואיפה הם היו בסוף????"},
+                { 
+                    type: 'image', 
+                    value: 'airpods_mess.jpeg',
+                    hesitation: true
+                }
+            ],
+            hesitation: true, 
+            emotion: "happy",
+            delay: 4500, 
+            nextOptions: [2, 6]
+        },  
+        {
+            id: 4,
+            userText: "מה את הכי אוהבת לעשות?",
+            sequence: [
+                { type: 'text', value: "ואי הכנתי אתמול בלונז"},
+                { type: 'text', value: "יצא מפחיד"},
+                { type: 'audio', value: "everything_was_somehow_so_tasty_and_edible.mp3" }, 
+                { type: 'text', value: "אני הכנתי לבד! רוצה לראות?"},
+                { 
+                    type: 'image', 
+                    value: 'boloni1.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni2.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni3.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni5.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni6.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni7.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni8.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni9.jpeg',
+                    hesitation: true
+                },
+                { 
+                    type: 'image', 
+                    value: 'boloni10.jpeg',
+                    hesitation: true
+                },
+                { type: 'audio', value: "singing_salt.mp3" }
+            ],
+            hesitation: true,
+            // backgroundAudio: "singing_salt.mp3",
+            emotion: "confused",
+            delay: 3000, 
+            nextOptions: [5, 7]
+        },
+        {
+            id: 5,
+            userText: "ספרי לי משהו",
+            sequence: [
+                { type: 'audio', value: "shampoo_story.mp3" },
+                { type: 'text', value: "אז קרה לי שוב היום",
+                  delay: 6000, 
+                  hesitation: true },
+                { type: 'text', value: "מה דעתך על החולצה?"},
+                { 
+                    type: 'image', 
+                    value: 'zara_top_2.png',
+                    hesitation: true
+                },
+                { type: 'audio', delay: 600, value: "i_asked_that_already_didnt_i.mp3" },
+                { type: 'audio', value: "put_shampoo_twice_is_awsome.mp3" }
+            ],
+            hesitation: true, 
+            emotion: "happy",
+            delay: 2000, 
+            nextOptions: [4, 6]
+        }, 
+        {
+            id: 6,
+            userText: "איך את מרגישה?",
+            sequence: [
+                { type: 'text', value: "אני בטוב!" },
+                { type: 'text', value: "עשיתי מעשה",
+                  delay: 8000, 
+                  hesitation: true },
+                { 
+                    type: 'image', 
+                    value: 'gili_and_gili.jpeg',
+                    delay: 4000, 
+                    hesitation: true 
+                },
+                { type: 'text', value: "תראי זאת גילי על המחשב של גילי" },
+                { type: 'text', value: "קורע", delay: 1000 },
+                { type: 'text', value: "לא אין לתאר" },
+                { type: 'text', value: "אני חושבת ששוב לקחתי פעמיים גלולה אני לא בטוחה" },
+                { type: 'audio', value: "accidentally_took_pills_twice.mp3" }
+            ],
+            hesitation: true, 
+            emotion: "confused",
+            delay: 2000, 
+            nextOptions: [8, 5]
+        },
+        {
+            id: 7,
+            userText: "מה עוד את מספרת?",
+            sequence: [
+                { type: 'text', value: "לבשל זה אירוע בשבילי"},
+                { type: 'audio', value: "cooking_and_saying_ingredients_out_loud.mp3" },
+                { type: 'audio', value: "cooking_experience.mp3" },
+                { type: 'text', value: "מה דעתך על החולצה?"},
+                { 
+                    type: 'image', 
+                    value: 'zara_top_1.png',
+                    hesitation: true
+                },
+                { type: 'audio', delay: 600, value: "i_asked_that_already_didnt_i.mp3" }
+            ],
+            hesitation: true, 
+            emotion: "confused",
+            delay: 3000, 
+            nextOptions: [8, 9]
+        },
+        
+        {
+            id: 8,
+            userText: "יש לך עוד משהו לספר על היום?",
+            sequence: [
+                { type: 'text', value: "עכשיו שאת שואלת אני נזכרת"},
+                { type: 'text', value: "עשיתי מעשה...",
+                  delay: 6000, 
+                  hesitation: true },
+                { 
+                    type: 'image', 
+                    value: 'gili_and_gili.jpeg',
+                    delay: 4000, 
+                    hesitation: true 
+                },
+                { type: 'text', value: "תראי זאת גילי על המחשב של גילי" },
+                { type: 'text', value: "קורע", delay: 1000 }
+            ],
+            hesitation: true, 
+            emotion: "confused",
+            delay: 2000, 
+            nextOptions: [9, 7]
+        },
+
+        {
+            id: 9,
+            userText: "טוב אנחנו צריכים להמשיך בהגשה, תסעי בזהירות!",
+            sequence: [
+                { type: 'text', value: "זהו בדיוק חניתי!"},
+                { type: 'text', value: "זה תמיד קורה ליבסוף הנסיעה", delay: 6000, hesitation: true },
+                { type: 'audio', delay: 600, value: "unbreaks_twice_when_parking.mp3" },
+                { type: 'text', value: "אני לא אעכב אותך, תמשיכו!"},
+            ],
+            hesitation: true, 
+            emotion: "confused",
+            delay: 2000, 
+            nextOptions: [10]
+        },
+        {
+            id: 10,
+            userText: "היה נעים להכיר!",
+            sequence: [
+                { type: 'text', value: "גם לי, תהנו בהמשך ההגשות!!"}
+            ],
+            hesitation: true, 
+            emotion: "confused",
+            delay: 2000, 
+            nextOptions: [11]
+        },
+        { id: 11, userText: "להתחיל מחדש", action: "restart" }
+    ];
+
+    const chatWindow = document.getElementById('chat-window');
+    const optionsBox = document.getElementById('options-box');
+    const typingBubble = document.getElementById('typing-bubble');
+
+    window.onload = startChat;
+
+    function startChat() {
+        chatWindow.innerHTML = '';
+        optionsBox.innerHTML = '';
+        allImgsOnScreen = [];
+        const start = conversationData.find(s => s.id === 1);
+        if (start) simulateADHD(start);
+    }
+
+    function handleSelection(scenario) {
+        optionsBox.innerHTML = '';
+        if (scenario.action === "restart") { startChat(); return; }
+        addMessage(scenario.userText, 'me');
+        simulateADHD(scenario);
+    }
+
+    function simulateADHD(scenario) {
+        runHesitationSequence(scenario.delay || 3000, () => playMessageSequence(scenario.sequence, scenario.nextOptions));
+    }
+
+    function runHesitationSequence(dur, cb) {
+        setTyping(true);
+        setTimeout(() => { setTyping(false); setTimeout(() => { setTyping(true); setTimeout(() => { setTyping(false); cb(); }, dur*0.3); }, dur*0.2); }, dur*0.5);
+    }
+
+    function playMessageSequence(seq, opts) {
+        if (!seq || seq.length === 0) { if (opts) showOptions(opts); return; }
+        
+        const current = seq[0];
+        
+        let imgBatch = [];
+        let i = 0;
+        while(seq[i] && seq[i].type === 'image') {
+            imgBatch.push(seq[i].value);
+            i++;
+        }
+
+        if (imgBatch.length >= 4) {
+            addGallery(imgBatch);
+            setTimeout(() => playMessageSequence(seq.slice(i), opts), 3000);
+        } else {
+            if (current.type === 'text') addMessage(current.value, 'gili');
+            else if (current.type === 'image') addMessage(null, 'gili', null, current.value);
+            else if (current.type === 'audio') addMessage(null, 'gili', current.value);
+
+            setTimeout(() => playMessageSequence(seq.slice(1), opts), current.delay || 2500);
+        }
+    }
+
+    function addMessage(text, sender, voice, img) {
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        if (text) div.innerHTML = `<div>${text}</div>`;
+        if (img) {
+            allImgsOnScreen.push(imagesPath + img);
+            const i = document.createElement('img'); i.src = imagesPath + img; i.className = 'chat-image';
+            i.dataset.fullsrc = imagesPath + img;
+            i.onclick = function() { openLightbox(this.dataset.fullsrc); };
+            div.appendChild(i);
+        }
+        if (voice) {
+            const id = 'audio-' + Math.random().toString(36).substr(2,9);
+            div.innerHTML += `<div class="custom-player-wrapper"><div class="play-btn" onclick="togglePlay('${id}')"><i class="fas fa-play" id="icon-${id}"></i></div><div class="waveform" id="wave-${id}"></div><div class="time-display" id="time-${id}">0:00</div><audio id="${id}" ontimeupdate="updateProgress('${id}')"><source src="${audioPath + voice}" type="audio/mpeg"></audio></div>`;
+            setTimeout(() => generateWaveform(id), 100);
+        }
+        chatWindow.appendChild(div); chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function addGallery(images) {
+        const div = document.createElement('div');
+        div.className = 'message gili';
+        let html = '<div class="image-gallery">';
+        images.forEach((img, idx) => {
+            allImgsOnScreen.push(imagesPath + img);
+            if (idx < 4) {
+                html += `<div class="gallery-item" onclick="openLightbox('${imagesPath + img}')">
+                            <img src="${imagesPath + img}" class="gallery-img-thumb">
+                            ${idx === 3 && images.length > 4 ? `<div class="more-overlay">+${images.length - 4}</div>` : ''}
+                         </div>`;
+            }
+        });
+        html += '</div>';
+        div.innerHTML = html;
+        chatWindow.appendChild(div); chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function openLightbox(src) {
+        currentImgIdx = allImgsOnScreen.indexOf(src);
+        document.getElementById('lightbox-img').src = allImgsOnScreen[currentImgIdx];
+        document.getElementById('lightbox').style.display = 'flex';
+        document.getElementById('prev-btn').style.display = allImgsOnScreen.length > 1 ? 'flex' : 'none';
+        document.getElementById('next-btn').style.display = allImgsOnScreen.length > 1 ? 'flex' : 'none';
+    }
+
+    function changeImage(step) {
+        currentImgIdx = (currentImgIdx + step + allImgsOnScreen.length) % allImgsOnScreen.length;
+        document.getElementById('lightbox-img').src = allImgsOnScreen[currentImgIdx];
+    }
+
+    function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+
+    function showOptions(ids) {
+        optionsBox.innerHTML = '';
+        ids.forEach(id => {
+            const scenario = conversationData.find(s => s.id === id);
+            if (scenario) {
+                const btn = document.createElement('div'); btn.className = 'option-btn';
+                btn.innerText = scenario.userText; btn.onclick = () => handleSelection(scenario);
+                optionsBox.appendChild(btn);
+            }
+        });
+    }
+
+    function togglePlay(id) {
+        const a = document.getElementById(id); const icon = document.getElementById(`icon-${id}`);
+        if (a.paused) { a.play(); icon.className = 'fas fa-pause'; } else { a.pause(); icon.className = 'fas fa-play'; }
+    }
+
+    function generateWaveform(id) {
+        const c = document.getElementById(`wave-${id}`);
+        for(let i=0; i<25; i++) {
+            const b = document.createElement('div'); b.className = 'bar';
+            b.style.height = Math.floor(Math.random()*70+30)+'%'; c.appendChild(b);
+        }
+    }
+
+    function updateProgress(id) {
+        const a = document.getElementById(id); const wave = document.getElementById(`wave-${id}`); const bars = wave.getElementsByClassName('bar');
+        const barsToFill = Math.floor((a.currentTime / a.duration) * bars.length);
+        for(let i=0; i<bars.length; i++) bars[i].classList.toggle('active', i < barsToFill);
+        const min = Math.floor(a.currentTime / 60); const sec = Math.floor(a.currentTime % 60);
+        document.getElementById(`time-${id}`).innerText = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+    }
+
+    function setTyping(is) { typingBubble.style.display = is ? 'block' : 'none'; if(is) chatWindow.scrollTop = chatWindow.scrollHeight; }
+</script>
+
+</body>
+</html>
